@@ -1,8 +1,6 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { login as supabaseLogin, logout as supabaseLogout, getCurrentUser, getUserProfile } from '@/lib/store';
-import { supabase } from '@/lib/supabase-client';
 
 // Define types for our auth context
 type UserProfile = {
@@ -21,6 +19,34 @@ type AuthContextType = {
   isAuthenticated: boolean;
   isLoading: boolean;
 };
+
+// Demo accounts for testing
+const DEMO_ACCOUNTS = [
+  { 
+    email: 'customer@example.com', 
+    password: 'password123', 
+    profile: {
+      id: 'customer-123',
+      email: 'customer@example.com',
+      first_name: 'Demo',
+      last_name: 'Customer',
+      role: 'customer' as const,
+      phone: '555-123-4567'
+    }
+  },
+  { 
+    email: 'carrier@example.com', 
+    password: 'password123', 
+    profile: {
+      id: 'carrier-123',
+      email: 'carrier@example.com',
+      first_name: 'Demo',
+      last_name: 'Carrier',
+      role: 'carrier' as const,
+      phone: '555-987-6543'
+    }
+  }
+];
 
 // Create the auth context
 const AuthContext = createContext<AuthContextType>({
@@ -42,12 +68,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const checkSession = async () => {
       try {
         setIsLoading(true);
-        const currentUser = await getCurrentUser();
         
-        if (currentUser) {
-          const profile = await getUserProfile(currentUser.id);
-          setUser(profile);
+        // Check localStorage for user data
+        const storedUser = localStorage.getItem('user');
+        const storedAuth = localStorage.getItem('isAuthenticated');
+        
+        if (storedUser && storedAuth === 'true') {
+          const userData = JSON.parse(storedUser) as UserProfile;
+          setUser(userData);
           setIsAuthenticated(true);
+          console.log('Session found, user:', userData);
+        } else {
+          console.log('No session found');
         }
       } catch (error) {
         console.error('Session check error:', error);
@@ -56,44 +88,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
 
-    // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event: string, session: any) => {
-        if (event === 'SIGNED_IN' && session?.user) {
-          try {
-            const profile = await getUserProfile(session.user.id);
-            setUser(profile);
-            setIsAuthenticated(true);
-          } catch (error) {
-            console.error('Profile fetch error:', error);
-          }
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-          setIsAuthenticated(false);
-        }
-      }
-    );
-
     checkSession();
-
-    // Clean up subscription on unmount
-    return () => {
-      subscription.unsubscribe();
-    };
   }, []);
 
   // Login function
   const login = async (email: string, password: string): Promise<UserProfile | null> => {
     try {
       setIsLoading(true);
-      const { user: authUser } = await supabaseLogin(email, password);
       
-      if (authUser) {
-        const profile = await getUserProfile(authUser.id);
-        setUser(profile);
+      // Find matching demo account
+      const account = DEMO_ACCOUNTS.find(acc => 
+        acc.email.toLowerCase() === email.toLowerCase() && 
+        acc.password === password
+      );
+      
+      if (account) {
+        // Store user info in localStorage for demo
+        localStorage.setItem('user', JSON.stringify(account.profile));
+        localStorage.setItem('isAuthenticated', 'true');
+        
+        setUser(account.profile);
         setIsAuthenticated(true);
-        return profile;
+        return account.profile;
       }
+      
       return null;
     } catch (error) {
       console.error('Login error:', error);
@@ -107,7 +125,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = async (): Promise<void> => {
     try {
       setIsLoading(true);
-      await supabaseLogout();
+      
+      // Clear localStorage
+      localStorage.removeItem('user');
+      localStorage.removeItem('isAuthenticated');
+      
       setUser(null);
       setIsAuthenticated(false);
     } catch (error) {

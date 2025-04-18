@@ -3,7 +3,36 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/context/AuthContext';
+
+// Demo accounts for testing
+const DEMO_ACCOUNTS = [
+  { 
+    email: 'customer@example.com', 
+    password: 'password123', 
+    role: 'customer',
+    profile: {
+      id: 'customer-123',
+      email: 'customer@example.com',
+      first_name: 'Demo',
+      last_name: 'Customer',
+      role: 'customer',
+      phone: '555-123-4567'
+    }
+  },
+  { 
+    email: 'carrier@example.com', 
+    password: 'password123', 
+    role: 'carrier',
+    profile: {
+      id: 'carrier-123',
+      email: 'carrier@example.com',
+      first_name: 'Demo',
+      last_name: 'Carrier',
+      role: 'carrier',
+      phone: '555-987-6543'
+    }
+  }
+];
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -11,7 +40,6 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,28 +47,29 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // Use the login function from AuthContext which uses Supabase
-      const user = await login(email, password);
+      // Find matching demo account
+      const account = DEMO_ACCOUNTS.find(acc => 
+        acc.email.toLowerCase() === email.toLowerCase() && 
+        acc.password === password
+      );
       
-      if (user) {
+      if (account) {
+        // Store user info in localStorage for demo
+        localStorage.setItem('user', JSON.stringify(account.profile));
+        localStorage.setItem('isAuthenticated', 'true');
+        
         // Redirect based on user role
-        router.push(user.role === 'customer' ? '/customer/dashboard' : '/carrier/dashboard');
+        router.push(account.role === 'customer' ? '/customer/dashboard' : '/carrier/dashboard');
       } else {
-        setError('Invalid email or password');
+        setError('Invalid email or password. Please use one of the demo accounts.');
       }
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during login');
+    } catch (err) {
       console.error(err);
+      setError('An error occurred during login');
     } finally {
       setIsLoading(false);
     }
   };
-
-  // Test accounts for demo purposes
-  const demoCredentials = [
-    { email: 'customer@example.com', role: 'customer', password: 'password123' },
-    { email: 'carrier@example.com', role: 'carrier', password: 'password123' }
-  ];
 
   const setDemoCredentials = (email: string, password: string) => {
     setEmail(email);
@@ -126,9 +155,9 @@ export default function LoginPage() {
         <div className="mt-8">
           <h3 className="text-sm font-medium text-gray-700 mb-2">Demo Accounts:</h3>
           <div className="border border-gray-200 p-4 rounded-md text-xs">
-            <p className="mb-1 text-gray-600">For testing, you can register a new account or use these demo accounts:</p>
+            <p className="mb-1 text-gray-600">For testing, use these demo accounts:</p>
             <ul className="list-disc pl-5 space-y-1">
-              {demoCredentials.map((cred, index) => (
+              {DEMO_ACCOUNTS.map((cred, index) => (
                 <li key={index}>
                   <button 
                     onClick={() => setDemoCredentials(cred.email, cred.password)}
@@ -141,6 +170,7 @@ export default function LoginPage() {
               ))}
             </ul>
             <p className="mt-2 text-gray-600">Click on an email to auto-fill the form. Password will be filled automatically.</p>
+            <p className="mt-2 text-gray-600 font-semibold">All demo accounts use password: password123</p>
           </div>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { User } from '@supabase/supabase-js';
 
-// Create a direct instance of the Supabase client here to avoid import issues
+// Create a direct instance of the Supabase client with hardcoded credentials for demo
 const supabase = createClient(
   'https://gpulijjaqdbkbpytnrus.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdwdWxpamphcWRia2JweXRucnVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUwMTI1MDksImV4cCI6MjA2MDU4ODUwOX0.Wfqly86HSrqqqu6lts3KFwDomUGHtl9CLB5g71c-E6I'
@@ -10,15 +10,18 @@ const supabase = createClient(
 // Auth functions
 export const login = async (email: string, password: string) => {
   try {
+    console.log('Attempting login with:', email);
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
     
     if (error) {
+      console.error('Login error from Supabase:', error);
       throw error;
     }
     
+    console.log('Login successful, user data:', data.user);
     return data;
   } catch (error) {
     console.error('Login error:', error);
@@ -34,7 +37,9 @@ export const register = async (
   lastName: string
 ) => {
   try {
-    // Just focus on creating the auth user first
+    console.log('Registering user:', email, role);
+    
+    // 1. Create the auth user
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -49,11 +54,40 @@ export const register = async (
     });
     
     if (authError) {
+      console.error('Auth signup error:', authError);
       throw authError;
     }
     
-    // For now, just return the auth data without trying to create a profile
-    // The profile can be created later when the user confirms their email
+    console.log('Auth signup successful:', authData);
+    
+    // 2. Create the profile record manually
+    if (authData.user) {
+      try {
+        console.log('Creating profile for user:', authData.user.id);
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: authData.user.id,
+            email: email,
+            first_name: firstName,
+            last_name: lastName,
+            role: role,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+          
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+          // Continue anyway since the auth record was created
+        } else {
+          console.log('Profile created successfully');
+        }
+      } catch (profileError) {
+        console.error('Profile creation exception:', profileError);
+        // Continue anyway since the auth record was created
+      }
+    }
+    
     return authData;
   } catch (error) {
     console.error('Registration error:', error);
@@ -75,7 +109,12 @@ export const logout = async () => {
 
 export const getCurrentUser = async (): Promise<User | null> => {
   try {
-    const { data } = await supabase.auth.getUser();
+    const { data, error } = await supabase.auth.getUser();
+    if (error) {
+      console.error('Get current user error:', error);
+      return null;
+    }
+    console.log('Current user:', data.user);
     return data.user;
   } catch (error) {
     console.error('Get current user error:', error);
@@ -85,21 +124,28 @@ export const getCurrentUser = async (): Promise<User | null> => {
 
 export const getUserProfile = async (userId: string) => {
   try {
-    // First try to get user metadata from auth
-    const { data: userData } = await supabase.auth.admin.getUserById(userId);
+    console.log('Getting profile for user:', userId);
     
-    if (userData?.user?.user_metadata) {
+    // Get user data from auth
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) {
+      console.error('Get user error:', userError);
+    } else if (userData?.user?.user_metadata) {
+      console.log('User metadata found:', userData.user.user_metadata);
+      // Create a profile from user metadata
       return {
         id: userId,
-        email: userData.user.email,
-        first_name: userData.user.user_metadata.first_name,
-        last_name: userData.user.user_metadata.last_name,
-        role: userData.user.user_metadata.role,
+        email: userData.user.email || '',
+        first_name: userData.user.user_metadata.first_name || '',
+        last_name: userData.user.user_metadata.last_name || '',
+        role: userData.user.user_metadata.role || 'customer',
         phone: userData.user.phone || null
       };
     }
     
-    // Fallback to profiles table if metadata not available
+    // Fallback to profiles table
+    console.log('Falling back to profiles table');
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -107,7 +153,7 @@ export const getUserProfile = async (userId: string) => {
       .single();
       
     if (error) {
-      console.error('Get user profile error:', error);
+      console.error('Get profile error:', error);
       // Return a minimal profile with available data
       return {
         id: userId,
@@ -119,6 +165,7 @@ export const getUserProfile = async (userId: string) => {
       };
     }
     
+    console.log('Profile from database:', data);
     return data;
   } catch (error) {
     console.error('Get user profile error:', error);
