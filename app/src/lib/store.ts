@@ -29,7 +29,7 @@ export const register = async (
   firstName: string, 
   lastName: string
 ) => {
-  // 1. Sign up the user
+  // Just focus on creating the auth user first
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
     password,
@@ -47,32 +47,8 @@ export const register = async (
     throw authError;
   }
   
-  // 2. Create the profile with role information
-  if (authData.user) {
-    try {
-      // Use RPC function to bypass RLS or use service role client
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: authData.user.id,
-          email,
-          first_name: firstName,
-          last_name: lastName,
-          role,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'id' });
-        
-      if (profileError) {
-        console.error('Profile creation error:', profileError);
-        // Continue anyway since the auth record was created
-      }
-    } catch (profileError) {
-      console.error('Profile creation error:', profileError);
-      // Continue anyway since the auth record was created
-    }
-  }
-  
+  // For now, just return the auth data without trying to create a profile
+  // The profile can be created later when the user confirms their email
   return authData;
 };
 
