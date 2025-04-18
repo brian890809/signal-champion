@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types/database.types';
 
-// Use environment variables for production deployment
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
-
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+// Hardcoded values for demo purposes
+export const supabase = createClient<Database>(
+  'https://gpulijjaqdbkbpytnrus.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdwdWxpamphcWRia2JweXRucnVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUwMTI1MDksImV4cCI6MjA2MDU4ODUwOX0.Wfqly86HSrqqqu6lts3KFwDomUGHtl9CLB5g71c-E6I'
+);
