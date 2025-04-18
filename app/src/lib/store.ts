@@ -1,5 +1,12 @@
-import { supabase } from './supabase';
+import { createClient } from '@supabase/supabase-js';
 import { User } from '@supabase/supabase-js';
+import type { Database } from './types/database.types';
+
+// Create a direct instance of the Supabase client here to avoid import issues
+const supabase = createClient<Database>(
+  'https://gpulijjaqdbkbpytnrus.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdwdWxpamphcWRia2JweXRucnVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUwMTI1MDksImV4cCI6MjA2MDU4ODUwOX0.Wfqly86HSrqqqu6lts3KFwDomUGHtl9CLB5g71c-E6I'
+);
 
 // Auth functions
 export const login = async (email: string, password: string) => {

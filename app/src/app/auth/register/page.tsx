@@ -3,13 +3,15 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { register } from '@/lib/store';
 
 export default function RegisterPage() {
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState('customer');
+  const [role, setRole] = useState<'customer' | 'carrier'>('customer');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -27,13 +29,13 @@ export default function RegisterPage() {
     }
 
     try {
-      // In a real app, we would call an API to register the user
-      // For demo purposes, we'll just redirect to the login page
-      setTimeout(() => {
-        router.push('/auth/login');
-      }, 1000);
-    } catch (err) {
-      setError('An error occurred during registration');
+      // Register the user with Supabase
+      await register(email, password, role, firstName, lastName);
+      
+      // Redirect to login page after successful registration
+      router.push('/auth/login');
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during registration');
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -50,21 +52,40 @@ export default function RegisterPage() {
 
       <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
         <form className="space-y-6 border border-gray-200 p-6 rounded-lg" onSubmit={handleSubmit}>
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium leading-6 text-gray-700">
-              Full Name
-            </label>
-            <div className="mt-2">
-              <input
-                id="name"
-                name="name"
-                type="text"
-                autoComplete="name"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-              />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="firstName" className="block text-sm font-medium leading-6 text-gray-700">
+                First Name
+              </label>
+              <div className="mt-2">
+                <input
+                  id="firstName"
+                  name="firstName"
+                  type="text"
+                  autoComplete="given-name"
+                  required
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                />
+              </div>
+            </div>
+            <div>
+              <label htmlFor="lastName" className="block text-sm font-medium leading-6 text-gray-700">
+                Last Name
+              </label>
+              <div className="mt-2">
+                <input
+                  id="lastName"
+                  name="lastName"
+                  type="text"
+                  autoComplete="family-name"
+                  required
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                />
+              </div>
             </div>
           </div>
 
@@ -95,7 +116,7 @@ export default function RegisterPage() {
                 id="role"
                 name="role"
                 value={role}
-                onChange={(e) => setRole(e.target.value)}
+                onChange={(e) => setRole(e.target.value as 'customer' | 'carrier')}
                 className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
               >
                 <option value="customer">Customer (I need to move items)</option>
@@ -167,12 +188,6 @@ export default function RegisterPage() {
             Sign in here
           </Link>
         </p>
-
-        <div className="mt-8">
-          <div className="border border-gray-200 p-4 rounded-md text-xs">
-            <p className="mb-1 text-gray-600">For the demo, please use the login page with the provided credentials instead of registering.</p>
-          </div>
-        </div>
       </div>
     </div>
   );

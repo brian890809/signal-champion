@@ -19,9 +19,8 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // For demo purposes, we'll accept any email that exists in our mock data
-      // In a real app, we would validate the password as well
-      const user = await login(email, 'password');
+      // Use the login function from AuthContext which uses Supabase
+      const user = await login(email, password);
       
       if (user) {
         // Redirect based on user role
@@ -29,21 +28,24 @@ export default function LoginPage() {
       } else {
         setError('Invalid email or password');
       }
-    } catch (err) {
-      setError('An error occurred during login');
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during login');
       console.error(err);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // For demo purposes, provide some valid login credentials
+  // Test accounts for demo purposes
   const demoCredentials = [
-    { email: 'alice@example.com', role: 'customer' },
-    { email: 'bob@example.com', role: 'carrier' },
-    { email: 'carlos@example.com', role: 'customer' },
-    { email: 'diana@example.com', role: 'carrier' }
+    { email: 'customer@example.com', role: 'customer', password: 'password123' },
+    { email: 'carrier@example.com', role: 'carrier', password: 'password123' }
   ];
+
+  const setDemoCredentials = (email: string, password: string) => {
+    setEmail(email);
+    setPassword(password);
+  };
 
   return (
     <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8 bg-white">
@@ -122,14 +124,14 @@ export default function LoginPage() {
         </p>
 
         <div className="mt-8">
-          <h3 className="text-sm font-medium text-gray-700 mb-2">Demo Credentials:</h3>
+          <h3 className="text-sm font-medium text-gray-700 mb-2">Demo Accounts:</h3>
           <div className="border border-gray-200 p-4 rounded-md text-xs">
-            <p className="mb-1 text-gray-600">For testing purposes, you can use any of these emails:</p>
+            <p className="mb-1 text-gray-600">For testing, you can register a new account or use these demo accounts:</p>
             <ul className="list-disc pl-5 space-y-1">
               {demoCredentials.map((cred, index) => (
                 <li key={index}>
                   <button 
-                    onClick={() => setEmail(cred.email)}
+                    onClick={() => setDemoCredentials(cred.email, cred.password)}
                     className="text-indigo-600 hover:text-indigo-500 font-medium"
                   >
                     {cred.email}
@@ -138,7 +140,7 @@ export default function LoginPage() {
                 </li>
               ))}
             </ul>
-            <p className="mt-2 text-gray-600">Any password will work for the demo.</p>
+            <p className="mt-2 text-gray-600">Click on an email to auto-fill the form. Password will be filled automatically.</p>
           </div>
         </div>
       </div>
