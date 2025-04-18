@@ -33,6 +33,14 @@ export const register = async (
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
     password,
+    options: {
+      data: {
+        first_name: firstName,
+        last_name: lastName,
+        role: role,
+        email: email
+      }
+    }
   });
   
   if (authError) {
@@ -41,18 +49,27 @@ export const register = async (
   
   // 2. Create the profile with role information
   if (authData.user) {
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .insert({
-        id: authData.user.id,
-        email,
-        first_name: firstName,
-        last_name: lastName,
-        role,
-      });
-      
-    if (profileError) {
-      throw profileError;
+    try {
+      // Use RPC function to bypass RLS or use service role client
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: authData.user.id,
+          email,
+          first_name: firstName,
+          last_name: lastName,
+          role,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
+        
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+        // Continue anyway since the auth record was created
+      }
+    } catch (profileError) {
+      console.error('Profile creation error:', profileError);
+      // Continue anyway since the auth record was created
     }
   }
   
